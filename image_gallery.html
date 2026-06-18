@@ -1,0 +1,522 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Gallery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0c0c0f;
+        --surface: #141417;
+        --surface2: #1c1c21;
+        --border: rgba(255, 255, 255, 0.06);
+        --text: #eeedf5;
+        --muted: #6b6a76;
+        --accent: #e8614a;
+        --font: "Inter", sans-serif;
+        --radius: 12px;
+      }
+
+      body {
+        background: var(--bg);
+        font-family: var(--font);
+        min-height: 100vh;
+        padding: 32px 24px;
+        color: var(--text);
+      }
+
+      /* ── Header ── */
+      .page-header {
+        margin-bottom: 28px;
+      }
+      .page-header h1 {
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        margin-bottom: 4px;
+      }
+      .page-header p {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      /* ── Filter bar ── */
+      .filter-bar {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+      .filter-btn {
+        padding: 6px 16px;
+        border: 1px solid var(--border);
+        border-radius: 100px;
+        background: transparent;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--muted);
+        font-family: var(--font);
+        transition: all 0.2s;
+        letter-spacing: 0.2px;
+      }
+      .filter-btn:hover {
+        border-color: rgba(255, 255, 255, 0.18);
+        color: var(--text);
+      }
+      .filter-btn.active {
+        background: var(--text);
+        color: var(--bg);
+        border-color: transparent;
+        font-weight: 600;
+      }
+
+      /* ── Grid ── */
+      .gallery-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 10px;
+      }
+
+      .gallery-item {
+        position: relative;
+        border-radius: var(--radius);
+        overflow: hidden;
+        cursor: pointer;
+        aspect-ratio: 1;
+        background: var(--surface);
+        border: 1px solid var(--border);
+      }
+
+      .gallery-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+      .gallery-item:hover img {
+        transform: scale(1.08);
+      }
+
+      .overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.7) 0%,
+          transparent 50%
+        );
+        opacity: 0;
+        transition: opacity 0.3s;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+      .gallery-item:hover .overlay {
+        opacity: 1;
+      }
+
+      .overlay-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 2px;
+        transform: translateY(6px);
+        transition: transform 0.3s;
+      }
+      .overlay-sub {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.65);
+        transform: translateY(6px);
+        transition: transform 0.3s 0.04s;
+      }
+      .gallery-item:hover .overlay-title,
+      .gallery-item:hover .overlay-sub {
+        transform: translateY(0);
+      }
+
+      .cat-badge {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        color: #fff;
+        font-size: 9px;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 100px;
+        letter-spacing: 0.8px;
+        text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      /* Category accent dots */
+      .cat-nature {
+        border-top: 2px solid #4ade80;
+      }
+      .cat-urban {
+        border-top: 2px solid #60a5fa;
+      }
+      .cat-travel {
+        border-top: 2px solid #f97316;
+      }
+      .cat-abstract {
+        border-top: 2px solid #c084fc;
+      }
+
+      .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 4rem;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      /* ── Lightbox ── */
+      .lightbox {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.92);
+        z-index: 999;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        padding: 24px;
+        backdrop-filter: blur(4px);
+      }
+      .lightbox.open {
+        display: flex;
+      }
+
+      .lb-img-wrap {
+        max-width: 780px;
+        width: 100%;
+        position: relative;
+      }
+      .lb-img-wrap img {
+        width: 100%;
+        max-height: 65vh;
+        object-fit: contain;
+        border-radius: 14px;
+        display: block;
+        box-shadow: 0 32px 80px rgba(0, 0, 0, 0.7);
+      }
+
+      .lb-info {
+        margin-top: 16px;
+        text-align: center;
+      }
+      .lb-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: #fff;
+        margin-bottom: 4px;
+      }
+      .lb-sub {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        text-transform: capitalize;
+      }
+
+      .lb-nav {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+      }
+      .lb-nav-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #fff;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+        font-size: 16px;
+      }
+      .lb-nav-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .lb-counter {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.35);
+        min-width: 50px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .lb-close {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #fff;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+        transition: background 0.2s;
+      }
+      .lb-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .count-info {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
+
+      @media (max-width: 520px) {
+        .gallery-grid {
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        body {
+          padding: 20px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page-header">
+      <h1>Gallery</h1>
+      <p>A curated collection of photography</p>
+    </div>
+
+    <div class="filter-bar" id="filterBar"></div>
+    <div class="count-info" id="countInfo"></div>
+    <div class="gallery-grid" id="grid"></div>
+
+    <!-- Lightbox -->
+    <div
+      class="lightbox"
+      id="lightbox"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Image viewer"
+    >
+      <button class="lb-close" id="lbClose" aria-label="Close">✕</button>
+      <div class="lb-img-wrap">
+        <img id="lbImg" src="" alt="" />
+      </div>
+      <div class="lb-info">
+        <div class="lb-title" id="lbTitle"></div>
+        <div class="lb-sub" id="lbSub"></div>
+      </div>
+      <div class="lb-nav">
+        <button class="lb-nav-btn" id="lbPrev" aria-label="Previous">←</button>
+        <span class="lb-counter" id="lbCounter">1 / 12</span>
+        <button class="lb-nav-btn" id="lbNext" aria-label="Next">→</button>
+      </div>
+    </div>
+
+    <script>
+      // BUG FIX: Unique images for every entry (no duplicates)
+      const photos = [
+        {
+          title: "Golden peaks",
+          cat: "nature",
+          src: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&q=80",
+        },
+        {
+          title: "City at dusk",
+          cat: "urban",
+          src: "https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=600&q=80",
+        },
+        {
+          title: "Forest mist",
+          cat: "nature",
+          src: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=600&q=80",
+        },
+        {
+          title: "Ocean horizon",
+          cat: "travel",
+          src: "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=600&q=80",
+        },
+        {
+          title: "Street life",
+          cat: "urban",
+          src: "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=600&q=80",
+        },
+        {
+          title: "Desert road",
+          cat: "travel",
+          src: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&q=80",
+        },
+        {
+          title: "Wild flowers",
+          cat: "nature",
+          src: "https://images.unsplash.com/photo-1490750967868-88df5691cc7e?w=600&q=80",
+        },
+        {
+          title: "Night bridge",
+          cat: "urban",
+          src: "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=600&q=80",
+        },
+        {
+          title: "Mountain lake",
+          cat: "travel",
+          src: "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=600&q=80",
+        },
+        {
+          title: "Autumn path",
+          cat: "nature",
+          src: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=600&q=80",
+        },
+        {
+          title: "Architecture",
+          cat: "urban",
+          src: "https://images.unsplash.com/photo-1486325212027-8081e485255e?w=600&q=80",
+        },
+        {
+          title: "Coastal cliffs",
+          cat: "travel",
+          src: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&q=80",
+        },
+      ];
+
+      const cats = ["all", "nature", "urban", "travel"];
+      let active = "all",
+        lbIdx = 0,
+        filtered = [];
+
+      const grid = document.getElementById("grid");
+      const filterBar = document.getElementById("filterBar");
+      const lightbox = document.getElementById("lightbox");
+      const lbImg = document.getElementById("lbImg");
+      const lbTitle = document.getElementById("lbTitle");
+      const lbSub = document.getElementById("lbSub");
+      const lbCounter = document.getElementById("lbCounter");
+      const countInfo = document.getElementById("countInfo");
+
+      function buildFilters() {
+        filterBar.innerHTML = "";
+        cats.forEach((c) => {
+          const b = document.createElement("button");
+          b.className = "filter-btn" + (c === active ? " active" : "");
+          b.textContent =
+            c === "all" ? "All" : c.charAt(0).toUpperCase() + c.slice(1);
+          b.onclick = () => {
+            active = c;
+            buildFilters();
+            buildGrid();
+          };
+          filterBar.appendChild(b);
+        });
+      }
+
+      function buildGrid() {
+        filtered =
+          active === "all" ? photos : photos.filter((p) => p.cat === active);
+        grid.innerHTML = "";
+        countInfo.textContent =
+          filtered.length + " photo" + (filtered.length !== 1 ? "s" : "");
+
+        if (!filtered.length) {
+          grid.innerHTML =
+            '<p class="empty-state">No images in this category.</p>';
+          return;
+        }
+
+        filtered.forEach((p, i) => {
+          const div = document.createElement("div");
+          div.className = `gallery-item cat-${p.cat}`;
+          div.innerHTML = `
+      <img src="${p.src}" alt="${p.title}" loading="lazy">
+      <span class="cat-badge">${p.cat}</span>
+      <div class="overlay">
+        <div class="overlay-title">${p.title}</div>
+        <div class="overlay-sub">${p.cat}</div>
+      </div>`;
+          div.onclick = () => openLb(i);
+          grid.appendChild(div);
+        });
+      }
+
+      function openLb(i) {
+        lbIdx = i;
+        updateLb();
+        lightbox.classList.add("open");
+        // prevent body scroll
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeLb() {
+        lightbox.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      function updateLb() {
+        const p = filtered[lbIdx];
+        lbImg.src = p.src;
+        lbImg.alt = p.title;
+        lbTitle.textContent = p.title;
+        lbSub.textContent = p.cat;
+        lbCounter.textContent = lbIdx + 1 + " / " + filtered.length;
+      }
+
+      document.getElementById("lbClose").onclick = closeLb;
+
+      document.getElementById("lbPrev").onclick = () => {
+        lbIdx = (lbIdx - 1 + filtered.length) % filtered.length;
+        updateLb();
+      };
+
+      document.getElementById("lbNext").onclick = () => {
+        lbIdx = (lbIdx + 1) % filtered.length;
+        updateLb();
+      };
+
+      // BUG FIX: Only fire keyboard nav when lightbox is actually open
+      lightbox.addEventListener("click", (e) => {
+        if (e.target === lightbox) closeLb();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (!lightbox.classList.contains("open")) return; // FIX: guard check
+        if (e.key === "Escape") closeLb();
+        if (e.key === "ArrowLeft") {
+          lbIdx = (lbIdx - 1 + filtered.length) % filtered.length;
+          updateLb();
+        }
+        if (e.key === "ArrowRight") {
+          lbIdx = (lbIdx + 1) % filtered.length;
+          updateLb();
+        }
+      });
+
+      buildFilters();
+      buildGrid();
+    </script>
+  </body>
+</html>
